@@ -23,62 +23,30 @@ class Test(unittest.TestCase):
         # mongo = MongoClient(self.host, self.port)
         mongo = MongoClient(self.host, self.port)
         if(isCode):
-            self.search_by_code(isByDate, mongo, func, codeType)
+            self.search_by_code_date(isByDate, mongo, func, codeType)
         else:
-            self.getData(mongo,func)
+            if (func == "today_all"):
+                df = ts.get_today_all()
+            else:
+                self.getData(mongo,func)
 
-    def getData(self,mongo,func):
-        if(func =="today_all"):
-            df = ts.get_today_all()
-        elif(func =="stock_basics"):
-            df = ts.get_stock_basics()
-            date = df.ix['600848']['timeToMarket']  # 上市日期YYYYMMDD
-            # ts.get_h_data('002337')  # 前复权
-            # ts.get_h_data('002337', autype='hfq')  # 后复权
-            # ts.get_h_data('002337', autype=None)  # 不复权
-            # ts.get_h_data('002337', start='2015-01-01', end='2015-03-16')  # 两个日期之间的前复权数据
-            #
-            # ts.get_h_data('399106', index=True)  # 深圳综合指数
-            print(date)
-        elif (func == "index"):
-            df = ts.get_index()
+    def search_by_code_date(self, isByDate, mongo, func, code_collection):
+        print ("getByCode")
+        if (code_collection == 'HS300'):
+            cursor = mongo.stockcodes.HS300.find()
+        elif (code_collection == 'IT'):
+            cursor = mongo.stockcodes.IT.find()
         else:
-            df = {}
+            cursor = {}
+        for item in cursor:
+            code = item['stockcode']
+            # print (code)
+            if(isByDate):
+                self.getFromTimeRange(mongo, func,code)
+            else:
+                self.getOnlyByCode(mongo, func, code)
 
-        insert_string = df.to_json(orient='records')
-        items = json.loads(insert_string)
-        coll = mongo.trading[func]
-        coll.insert(items)
-
-    def getByDate(self, mongo, func,code, date):
-        if (func == "sina_dd"):
-            df = ts.get_sina_dd(code, date=date)
-        elif (func == "tick_data"):
-            df = ts.get_tick_data(code, date=date)
-        else:
-            df = {}
-        print(func)
-        #print(type(df))
-        tmpJson = json.loads(df.to_json(orient='records'))
-        for i in range(len(tmpJson)):
-            tmpJson[i][u'code'] = code
-        coll = mongo.trading[func]
-        coll.insert(tmpJson)
-
-    def getFromTimeRange(self, mongo, func,code):
-        print("queryFromTime")
-        import datetime
-        begin_date = self.start
-        end_date = self.end
-        begin = datetime.datetime.strptime(begin_date, "%Y-%m-%d")
-        end = datetime.datetime.strptime(end_date, "%Y-%m-%d")
-        while begin <= end:
-            tmpDate = begin.strftime("%Y-%m-%d")
-            self.getByCode(mongo, func,code)
-            begin += datetime.timedelta(days=1)
-
-
-    def getByCode(self, mongo, func,code):
+    def getOnlyByCode(self, mongo, func, code):
         if (func == "hist_data"):
             df = ts.get_hist_data(code, self.start, self.end)
         # elif (func == "tick_data"):
@@ -95,8 +63,6 @@ class Test(unittest.TestCase):
             # ts.get_realtime_quotes(df['code'].tail(10))  # 一次获取10个股票的实时分笔数据
             # # 或者混搭
             # ts.get_realtime_quotes(['sh', '600848'])
-        elif (func == "h_data"):
-            df = ts.get_h_data(code, self.start, self.end)
         elif (func == "today_ticks"):
             df = ts.get_today_ticks(code)
         else:
@@ -109,21 +75,62 @@ class Test(unittest.TestCase):
             tmpJson[i][u'code'] = code
             coll.insert(tmpJson[i])
 
-    def search_by_code(self,isByDate, mongo, func,code_collection):
-        print ("getByCode")
-        if (code_collection == 'HS300'):
-            cursor = mongo.stockcodes.HS300.find()
-        elif (code_collection == 'IT'):
-            cursor = mongo.stockcodes.IT.find()
+
+    def getFromTimeRange(self, mongo, func,code):
+        print("queryFromTime")
+        import datetime
+        begin_date = self.start
+        end_date = self.end
+        begin = datetime.datetime.strptime(begin_date, "%Y-%m-%d")
+        end = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+        while begin <= end:
+            tmpDate = begin.strftime("%Y-%m-%d")
+            self.getByDate(mongo, func,code,tmpDate)
+            begin += datetime.timedelta(days=1)
+
+    def getByDate(self, mongo, func, code, date):
+        isNeedDate = False
+        if (func == "sina_dd"):
+            df = ts.get_sina_dd(code, date=str(date))
+        elif (func == "tick_data"):
+            df = ts.get_tick_data(code, date=date)
+        elif (func == "h_data"):
+            df = ts.get_h_data(code, self.start, self.end)
         else:
-            cursor = {}
-        for item in cursor:
-            code = item['stockcode']
-            # print (code)
-            if(isByDate):
-                self.getFromTimeRange(mongo, func,code)
-            else:
-                self.getByCode(mongo, func,code)
+            df = {}
+        print(func)
+        # print(type(df))
+        tmpJson = json.loads(df.to_json(orient='records'))
+        for i in range(len(tmpJson)):
+            tmpJson[i][u'code'] = code
+        coll = mongo.trading[func]
+        coll.insert(tmpJson)
+
+    def getData(self,mongo,func):
+        if(func =="stock_basics"):
+            df = ts.get_stock_basics()
+            date = df.ix['600848']['timeToMarket']  # 上市日期YYYYMMDD
+            # ts.get_h_data('002337')  # 前复权
+            # ts.get_h_data('002337', autype='hfq')  # 后复权
+            # ts.get_h_data('002337', autype=None)  # 不复权
+            # ts.get_h_data('002337', start='2015-01-01', end='2015-03-16')  # 两个日期之间的前复权数据
+            #
+            # ts.get_h_data('399106', index=True)  # 深圳综合指数
+            print(date)
+
+        elif (func == "index"):
+            df = ts.get_index()
+        else:
+            df = {}
+
+        insert_string = df.to_json(orient='records')
+        items = json.loads(insert_string)
+        coll = mongo.trading[func]
+        coll.insert(items)
+
+
+
+
 
 
 
@@ -201,7 +208,7 @@ class Test(unittest.TestCase):
         # volume: 成交量
         # amount: 成交金额
         #########################################
-        isCode = True
+        isCode = False
         isByDate = False
         code_collection = "HS300"
         self.core_function("stock_basics", isCode,isByDate, code_collection)
@@ -253,7 +260,7 @@ class Test(unittest.TestCase):
         #
         #########################################
         code_collection = "HS300"
-        isCode = True
+        isCode = False
         isByDate = False
         self.core_function("today_all", isCode, isByDate, code_collection)
 
@@ -360,7 +367,7 @@ class Test(unittest.TestCase):
         # amount: 成交金额
         #########################################
         isCode = True
-        isByDate = False
+        isByDate = True
         code_collection = "HS300"
         self.core_function("h_data", isCode, isByDate, code_collection)
 
@@ -414,8 +421,8 @@ class Test(unittest.TestCase):
         # amount：成交金额(元)
         # type：买卖类型【买盘、卖盘、中性盘】
         #########################################
-        isCode = False
-        isByDate = True
+        isCode = True
+        isByDate = False
         code_collection = "HS300"
         self.core_function("today_ticks", isCode, isByDate, code_collection)
 
