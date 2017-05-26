@@ -1,0 +1,15 @@
+Server: nginx
+Date: Fri, 26 May 2017 07:12:14 GMT
+Content-Type: text/html; charset=utf-8
+Vary: Accept-Encoding
+Ajk: m=tjtx-125-142, v=20170526_02
+Set-Cookie: ctid=12; expires=Sun, 25-Jun-2017 07:12:14 GMT; Max-Age=2592000; path=/; domain=anjuke.com
+Set-Cookie: ctid=12; expires=Sun, 25-Jun-2017 07:12:14 GMT; Max-Age=2592000; path=/; domain=anjuke.com
+Set-Cookie: aQQ_ajkguid=0AC65AA0-4C68-5379-7859-SX0526151214; expires=Sat, 26-May-2018 07:12:14 GMT; Max-Age=31536000; path=/; domain=anjuke.com
+Set-Cookie: sessid=C94D7BBE-D693-5B89-60D0-SX0526151214; path=/; domain=anjuke.com
+Set-Cookie: tuangou_list_ids=1%3A1; path=/; domain=anjuke.com
+X-Logtrace-Id: G-9B42DEA7617EA24DFA58E6A99490AB0E
+Cache-Control: public, s-maxage=86400, max-age=0, must-revalidate
+Last-Modified: Fri, 26 May 2017 07:12:14 GMT
+Expires: Thu, 01 Jan 1970 00:00:00 GMT
+Content-Encoding: gzip
