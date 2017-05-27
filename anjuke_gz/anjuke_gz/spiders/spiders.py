@@ -8,15 +8,15 @@ import requests
 """
 class Myspider(scrapy.Spider):
     name = 'anjuke_gz'
-    allowed_domains = ['http://gz.fang.anjuke.com/loupan/']
-    start_urls = ["http://gz.fang.anjuke.com/loupan/all/p{}/".format(i) for i in range(39)]
+    allowed_domains = ['http://bj.fang.anjuke.com/loupan/']
+    start_urls = ["http://bj.fang.anjuke.com/loupan/all/p{}/".format(i) for i in range(39)]
 
     def parse(self, response):
         soup = BeautifulSoup(response.text,"lxml")
         content=soup.find_all(class_="items-name") #返回每个楼盘的对应数据
         for item in content:
             code=item["href"].split("/")[-1][:6]
-            real_href="http://gz.fang.anjuke.com/loupan/canshu-{}.html?from=loupan_tab".format(code) #拼凑出楼盘详情页的url
+            real_href="http://bj.fang.anjuke.com/loupan/canshu-{}.html?from=loupan_tab".format(code) #拼凑出楼盘详情页的url
             res=requests.get(real_href)
             soup = BeautifulSoup(res.text,"lxml")
             a = re.findall(r'<div class="name">(.*?)</div>', str(soup))
