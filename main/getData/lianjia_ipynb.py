@@ -22,8 +22,7 @@ from pymongo import MongoClient
 # 多线程数量设置
 NUM_THREADS = 8
 
-city_dict = {"成都": "cd", "北京": "bj", "上海": "sh", "广州": "gz", "深圳": "sz", "南京": "nj", "合肥": "hf", "杭州": "hz", }
-CITY = city_dict["北京"]
+
 
 # 是否打印 HTTP error
 PRINT = False
@@ -101,6 +100,7 @@ def get_district_from_city(city):
 # In[7]:
 
 def get_xiaoqu_from_district(city, district):
+    print("get_xiaoqu_from_district")
     http_url = "http://{}.lianjia.com/xiaoqu/{}".format(city, district)
     bs_obj = get_bs_obj_from_url(http_url)
 
@@ -125,6 +125,18 @@ def get_xiaoqu_from_district(city, district):
             page_no, xiaoqu_list_partial = get_xiaoqu_in_page(city, district, page_no)
             if xiaoqu_list_partial is not None and len(xiaoqu_list_partial) > 0:
                 xiaoqu_list += xiaoqu_list_partial
+        #print(xiaoqu_list)
+        mongo = MongoClient("127.0.0.1", 27017)
+        items = []
+        for num in xiaoqu_list:
+            item = {
+                'num' : num
+            }
+            items.append(item)
+        print(items)
+        tablename = city
+        coll = mongo.lianjia_xiaoqu_num[tablename]
+        coll.insert(items)
     return xiaoqu_list
 
 
@@ -159,6 +171,8 @@ def get_xiaoqu_of_city(city):
         xiaoqu_of_district = get_xiaoqu_from_district(city, district)
         xiaoqu_list += xiaoqu_of_district
         print("****** 当前区域小区数: {}, 总小区数: {} ******".format(len(xiaoqu_of_district), len(xiaoqu_list)))
+
+
     return xiaoqu_list
 
 
@@ -205,8 +219,8 @@ def get_xiaoqu_info(city, xiaoqu_id):
             mongo = MongoClient("127.0.0.1", 27017)
             loadJson = df.to_json(orient='records')
             items = json.loads(loadJson)
-            print(items)
-            coll = mongo.lianjiaTest["test"]
+            tablename = city + "_xiaoqu_info"
+            coll = mongo.lianjia_xiaoqu[tablename]
             coll.insert(items)
         except Exception as e:
             print(e)
@@ -248,9 +262,10 @@ def get_xiaoqu_info_from_xiaoqu_list(city, xiaoqu_list):
 # In[12]:
 
 def get_xiaoqu_transactions_in_page(city, xiaoqu_id, page_no):
+    print("get_xiaoqu_transactions_in_page")
     http_url = "http://{}.lianjia.com/chengjiao/pg{}c{}/".format(city, page_no, xiaoqu_id)
     bs_obj = get_bs_obj_from_url(http_url)
-
+    xiaoqu_name = ""
     df = pd.DataFrame()
 
     if bs_obj is not None:
@@ -300,6 +315,13 @@ def get_xiaoqu_transactions_in_page(city, xiaoqu_id, page_no):
                                                 "成交周期", "成交日期", "朝向", "装修",
                                                 "电梯", "楼层", "建筑类型", ])
                 df = df.append(temp_df)
+                mongo = MongoClient("127.0.0.1", 27017)
+                loadJson = df.to_json(orient='records')
+                items = json.loads(loadJson)
+                print(items)
+                tablename = city
+                coll = mongo.lianjia_chengjiao[tablename]
+                coll.insert(items)
 
         except Exception as e:
             print(xiaoqu_id, page_no, e)
@@ -308,11 +330,14 @@ def get_xiaoqu_transactions_in_page(city, xiaoqu_id, page_no):
 
 
 def get_xiaoqu_transactions(city, xiaoqu_id):
+    print("get_xiaoqu_transactions")
+    print(city,xiaoqu_id)
     df_xiaoqu_transctions = pd.DataFrame()
 
     for i in range(3):
         try:
             http_url = "http://{}.lianjia.com/chengjiao/c{}/".format(city, xiaoqu_id)
+            print(http_url)
             bs_obj = get_bs_obj_from_url(http_url)
             total_transaction_num = int(bs_obj.find("div", {"class": "total fl"}).find("span").get_text())
             if total_transaction_num == 0:
@@ -339,6 +364,8 @@ def get_xiaoqu_transactions(city, xiaoqu_id):
         xiaoqu_transactions_partial = get_xiaoqu_transactions_in_page(city, xiaoqu_id, page_no)
         if xiaoqu_transactions_partial is not None and len(xiaoqu_transactions_partial) > 0:
             df_xiaoqu_transctions = df_xiaoqu_transctions.append(xiaoqu_transactions_partial)
+
+
     return df_xiaoqu_transctions
 
 
@@ -346,7 +373,7 @@ def get_xiaoqu_transactions(city, xiaoqu_id):
 
 def get_transactions_from_xiaoqu_list(city, xiaoqu_list):
     df = pd.DataFrame()
-    print(" ")
+    print(" get_transactions_from_xiaoqu_list")
 
     with futures.ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
         future_list = []
@@ -362,63 +389,98 @@ def get_transactions_from_xiaoqu_list(city, xiaoqu_list):
                 df = df.append(xiaoqu_transactions_partial)
             count += 1
             sys.stdout.write("\rProgress: {}/{}".format(count, len(xiaoqu_list)))
+        mongo = MongoClient("127.0.0.1", 27017)
+        loadJson = df.to_json(orient='records')
+        items = json.loads(loadJson)
+        print(items)
+        tablename = city + "_transactions_from_xiaoqu"
+        coll = mongo.lianjia[tablename]
+        coll.insert(items)
     return df
 
 
 # # 爬取城市的小区ID列表
 
 # In[ ]:
+def test_get_community_ID(city):
+    xiaoqu_list = get_xiaoqu_of_city(city)
 
-xiaoqu_list = get_xiaoqu_of_city(CITY)
+    # In[ ]:
 
-# In[ ]:
+    with open("{}_list.txt".format(city), mode="w") as f:
+        for xiaoqu in xiaoqu_list:
+            f.write(xiaoqu + "\n")
+    print("list write finished.")
 
-with open("{}_list.txt".format(CITY), mode="w") as f:
-    for xiaoqu in xiaoqu_list:
-        f.write(xiaoqu + "\n")
-print("list write finished.")
+    # In[14]:
 
-# In[14]:
+    with open("{}_list.txt".format(city), mode="r") as f:
+        xiaoqu_list = [line[:-1] for line in f.readlines()]
 
-with open("{}_list.txt".format(CITY), mode="r") as f:
-    xiaoqu_list = [line[:-1] for line in f.readlines()]
+def get_num_from_xiaoqu(city):
+    client = MongoClient("127.0.0.1", 27017)
+    coll = client['lianjia_xiaoqu_num']
+    cursor = coll[city].find()
+    list = []
+    for item in cursor:
+        list.append(item['num'])
+    print ("get_num_from_xiaoqu Finished")
+    return list
 
-# # 爬取小区ID列表对应的小区信息
+def test_get_write_community_Info(city):
+    # # 爬取小区ID列表对应的小区信息
+    xiaoqu_list = get_num_from_xiaoqu(city)
+    df_xiaoqu_info = get_xiaoqu_info_from_xiaoqu_list(CITY, xiaoqu_list)
+    df_xiaoqu_info.to_csv("{}_info.csv".format(CITY), sep=",", encoding="utf-8")
+    print("infos write finished.")
 
-# In[ ]:
+def test_success_record(city):
+    xiaoqu_list = get_num_from_xiaoqu(city)
+    # # 爬取二手房交易记录
+    # 分段爬取，避免失败重新爬，同时ExcelWriter有URL写入最多65530条的限制，根据具体情况设置PART的值
+    PART = 5
+    for i in range(0, PART):
+        start = int(i * len(xiaoqu_list) / PART)
+        end = int((i + 1) * len(xiaoqu_list) / PART)
+        df_transactions = get_transactions_from_xiaoqu_list(CITY, xiaoqu_list[start:end])
+        writer = pd.ExcelWriter("{}_transactions_{}.xlsx".format(CITY, i + 1))
+        df_transactions.to_excel(writer, "Data")
+        writer.save()
+        #     df_transactions.to_csv("{}_transaction_{}.csv".format(CITY, i+1), sep=",", encoding="utf-8")
+        print("\nfile {} written.".format(i + 1))
 
-df_xiaoqu_info = get_xiaoqu_info_from_xiaoqu_list(CITY, xiaoqu_list)
 
-# In[ ]:
+if __name__ == '__main__':
 
-df_xiaoqu_info.to_csv("{}_info.csv".format(CITY), sep=",", encoding="utf-8")
-print("infos write finished.")
+    # # 测试区域
+    # 测试部分函数的运行结果
 
-# # 爬取二手房交易记录
+    city_dict = {"成都": "cd", "天津": "tj", "北京": "bj", "上海": "sh", "广州": "gz", "深圳": "sz", "南京": "nj", "合肥": "hf",
+                 "杭州": "hz", }
+    CITY = city_dict["天津"]
 
-# In[ ]:
+    # In[15]:
 
-# 分段爬取，避免失败重新爬，同时ExcelWriter有URL写入最多65530条的限制，根据具体情况设置PART的值
-PART = 5
-for i in range(0, PART):
-    start = int(i * len(xiaoqu_list) / PART)
-    end = int((i + 1) * len(xiaoqu_list) / PART)
-    df_transactions = get_transactions_from_xiaoqu_list(CITY, xiaoqu_list[start:end])
-    writer = pd.ExcelWriter("{}_transactions_{}.xlsx".format(CITY, i + 1))
-    df_transactions.to_excel(writer, "Data")
-    writer.save()
-    #     df_transactions.to_csv("{}_transaction_{}.csv".format(CITY, i+1), sep=",", encoding="utf-8")
-    print("\nfile {} written.".format(i + 1))
+    http_url = "http://{}.lianjia.com/chengjiao/c{}/".format(CITY, 1611047831383)
+    bs_obj = get_bs_obj_from_url(http_url)
 
-# # 测试区域
-# 测试部分函数的运行结果
+    # In[15]:
 
-# In[15]:
+    #test_success_record(city=CITY)
+    test_get_write_community_Info(city=CITY)
+    #get_num(city=CITY)
+    #test_get_community_ID(city=CITY)
+    #get_xiaoqu_transactions(city=CITY, xiaoqu_id=1111027375590)
 
-http_url = "http://{}.lianjia.com/chengjiao/c{}/".format(CITY, 1611047831383)
-bs_obj = get_bs_obj_from_url(http_url)
+# mongoexport -d lianjia_chengjiao -c tj_xiaoqu_name -f 小区ID,小区名称,户型,建筑面积,
+    # 成交价,挂牌价,单价,成交周期,成交日期,朝向,装修,电梯,楼层,建筑类型
+    # --csv -o E:\MongoDB\Server\3.4\bin\天津成交信息.csv
+#
+# mongoexport -d lianjia_xiaoqu -c tj_xiaoqu_info -f
+    # ID,URL,小区名称,城市,区域,片区,参考均价,建筑年代,总栋数,总户数,开发商,物业费,物业公司,建筑类型,地址
+    #  --csv -o E:\MongoDB\Server\3.4\bin\test\天津小区信息.csv
 
-# In[15]:
-
-get_xiaoqu_transactions(city=CITY, xiaoqu_id=1611041878663)
+# mongoexport -d lianjia_data -c records -f 小区ID,小区名称,户型,建筑面积,成交价
+# ,挂牌价,单价,成交周期,成交日期,朝向,装修,电梯,楼层,建筑类型,区域,片区,季度,成交月份
+# --csv -o E:\MongoDB\Server\3.4\bin\天津_成交信息.csv
 
