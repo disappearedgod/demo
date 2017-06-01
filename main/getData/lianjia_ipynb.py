@@ -135,8 +135,8 @@ def get_xiaoqu_from_district(city, district):
             }
             items.append(item)
         #print(items)
-        tablename = city
-        coll = mongo.lianjia_xiaoqu_num[tablename]
+        tablename = city+'_xiaoqu_num'
+        coll = mongo.lianjia[tablename]
         coll.insert(items)
     return xiaoqu_list
 
@@ -226,6 +226,8 @@ def get_xiaoqu_info(city, xiaoqu_id):
         except Exception as e:
             print(e)
 
+
+
     return xiaoqu_id, df
 
 
@@ -240,6 +242,7 @@ def get_xiaoqu_info_from_xiaoqu_list(city, xiaoqu_list):
         future_list = []
         for xiaoqu in xiaoqu_list:
             future_list.append(executor.submit(get_xiaoqu_info, city, xiaoqu))
+            #xiaoqu_list.remove(xiaoqu)
         fail_list = []
         print(" ")
         for future in futures.as_completed(future_list):
@@ -268,7 +271,15 @@ def get_xiaoqu_transactions_in_page(city, xiaoqu_id, page_no):
     bs_obj = get_bs_obj_from_url(http_url)
     xiaoqu_name = ""
     df = pd.DataFrame()
-
+    # isDone = False
+    # client = MongoClient("127.0.0.1", 27017)
+    # coll = client['lianjia']
+    # cursor = coll[city + '_xiaoqu_unfinished_num'].find_one({'num':xiaoqu_id})
+    # print("************cursor*************")
+    # print (cursor)
+    # if cursor is not None:
+    #     isDone = True
+    #     return df
     if bs_obj is not None:
         try:
             div_list = bs_obj.find_all("div", {"class": "info"})
@@ -316,6 +327,7 @@ def get_xiaoqu_transactions_in_page(city, xiaoqu_id, page_no):
                                                 "成交周期", "成交日期", "朝向", "装修",
                                                 "电梯", "楼层", "建筑类型", ])
                 df = df.append(temp_df)
+                # if isDone is False:
                 mongo = MongoClient("127.0.0.1", 27017)
                 loadJson = df.to_json(orient='records')
                 items = json.loads(loadJson)
@@ -326,6 +338,16 @@ def get_xiaoqu_transactions_in_page(city, xiaoqu_id, page_no):
 
         except Exception as e:
             print(xiaoqu_id, page_no, e)
+
+    mongo = MongoClient("127.0.0.1", 27017)
+    loadJson = {
+        'num': xiaoqu_id
+    }
+    loadJson = json.dumps(loadJson)
+    item = json.loads(loadJson)
+    tablename = city + "_xiaoqu_finished_num"
+    coll = mongo.lianjia[tablename]
+    coll.insert(item)
 
     return df
 
@@ -349,7 +371,7 @@ def get_xiaoqu_transactions(city, xiaoqu_id):
 
             break
         except Exception as e:
-            print(xiaoqu_id, e)
+            print("ERROR")
             print(xiaoqu_id, e)
             if i == 4:
                 return df_xiaoqu_transctions
@@ -420,8 +442,13 @@ def test_get_community_ID(city):
 
 def get_num_from_xiaoqu(city):
     client = MongoClient("127.0.0.1", 27017)
-    coll = client['lianjia_xiaoqu_num']
-    cursor = coll[city].find()
+    coll = client['lianjia']
+    cursor = coll[city+'_xiaoqu_unfinished_num'].find()
+    print(cursor.count())
+    if cursor.count() == 0:
+        print("################### NO Unfinished ########################")
+        cursor = coll[city + '_xiaoqu_num'].find()
+        print(cursor.count())
     list = []
     for item in cursor:
         list.append(item['num'])
@@ -431,12 +458,14 @@ def get_num_from_xiaoqu(city):
 def test_get_write_community_Info(city):
     # # 爬取小区ID列表对应的小区信息
     xiaoqu_list = get_num_from_xiaoqu(city)
+    print(xiaoqu_list)
     df_xiaoqu_info = get_xiaoqu_info_from_xiaoqu_list(CITY, xiaoqu_list)
     if(isWrite):
         df_xiaoqu_info.to_csv("{}_info.csv".format(CITY), sep=",", encoding="utf-8")
     print("infos write finished.")
 
 def test_success_record(city):
+    mongo_unfinished(city)
     xiaoqu_list = get_num_from_xiaoqu(city)
     # # 爬取二手房交易记录
     # 分段爬取，避免失败重新爬，同时ExcelWriter有URL写入最多65530条的限制，根据具体情况设置PART的值
@@ -452,6 +481,33 @@ def test_success_record(city):
             #     df_transactions.to_csv("{}_transaction_{}.csv".format(CITY, i+1), sep=",", encoding="utf-8")
             print("\nfile {} written.".format(i + 1))
 
+def mongo_unfinished(city):
+    print (city)
+    client = MongoClient("127.0.0.1", 27017)
+    coll = client['lianjia']
+    collUnFin = coll[city + '_xiaoqu_unfinished_num']
+    collUnFin.drop()
+    if coll[city + '_xiaoqu_finished_num'].find().count() != 0:
+        cursor = coll[city+'_xiaoqu_num'].find()
+        list = []
+        unFinCount = 0
+        FinCount = 0
+        for item in cursor:
+            #print(item)
+            num = item[u'num']
+            #print(num)
+            if coll[city + '_xiaoqu_finished_num'].find({'num':num}).count() > 0:
+                unFinCount = unFinCount + 1
+                loadJson = {
+                    'num': num
+                }
+                loadJson = json.dumps(loadJson)
+                item = json.loads(loadJson)
+                collUnFin.insert(item)
+            else:
+                FinCount = FinCount + 1
+        print(unFinCount,FinCount)
+        print(unFinCount + FinCount)
 
 if __name__ == '__main__':
 
@@ -469,7 +525,11 @@ if __name__ == '__main__':
 
     # In[15]:
 
-    test_success_record(city=CITY)#3
+
+
+    #mongo_unfinished(city=CITY)
+    test_success_record(city=CITY)  # 3
+
     #test_get_write_community_Info(city=CITY)#2
 
     #test_get_community_ID(city=CITY)#1
