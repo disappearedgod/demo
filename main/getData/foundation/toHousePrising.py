@@ -13,9 +13,9 @@ from pymongo import MongoClient
 
 def mongo_exc(city):
     client = MongoClient("127.0.0.1", 27017)
-    chengjiao_coll = client['lianjia_chengjiao']
+    chengjiao_coll = client['lianjia']
     xiaoqu_coll = client['lianjia_xiaoqu']
-    chengjiao_cursor = chengjiao_coll[city].find()
+    chengjiao_cursor = chengjiao_coll[city + '_chengjiao'].find()
 
     countNK=0
     countHP=0
@@ -79,7 +79,7 @@ def mongo_exc(city):
                 print("河东：",countHD)
 
             #print(tmpJson)
-            coll = client.lianjia_data_1["records"]
+            coll = client.lianjia_data["records"]
             coll.insert(tmpJson)
             count = count + 1
 

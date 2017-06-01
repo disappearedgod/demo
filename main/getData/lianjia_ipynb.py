@@ -27,6 +27,7 @@ NUM_THREADS = 8
 # 是否打印 HTTP error
 PRINT = False
 
+isWrite = False
 # In[3]:
 
 hds = [{'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6'}, {
@@ -133,7 +134,7 @@ def get_xiaoqu_from_district(city, district):
                 'num' : num
             }
             items.append(item)
-        print(items)
+        #print(items)
         tablename = city
         coll = mongo.lianjia_xiaoqu_num[tablename]
         coll.insert(items)
@@ -220,7 +221,7 @@ def get_xiaoqu_info(city, xiaoqu_id):
             loadJson = df.to_json(orient='records')
             items = json.loads(loadJson)
             tablename = city + "_xiaoqu_info"
-            coll = mongo.lianjia_xiaoqu[tablename]
+            coll = mongo.lianjia[tablename]
             coll.insert(items)
         except Exception as e:
             print(e)
@@ -318,9 +319,9 @@ def get_xiaoqu_transactions_in_page(city, xiaoqu_id, page_no):
                 mongo = MongoClient("127.0.0.1", 27017)
                 loadJson = df.to_json(orient='records')
                 items = json.loads(loadJson)
-                print(items)
-                tablename = city
-                coll = mongo.lianjia_chengjiao[tablename]
+                #print(items)
+                tablename = city + '_chengjiao'
+                coll = mongo.lianjia[tablename]
                 coll.insert(items)
 
         except Exception as e:
@@ -337,7 +338,7 @@ def get_xiaoqu_transactions(city, xiaoqu_id):
     for i in range(3):
         try:
             http_url = "http://{}.lianjia.com/chengjiao/c{}/".format(city, xiaoqu_id)
-            print(http_url)
+            #print(http_url)
             bs_obj = get_bs_obj_from_url(http_url)
             total_transaction_num = int(bs_obj.find("div", {"class": "total fl"}).find("span").get_text())
             if total_transaction_num == 0:
@@ -392,7 +393,7 @@ def get_transactions_from_xiaoqu_list(city, xiaoqu_list):
         mongo = MongoClient("127.0.0.1", 27017)
         loadJson = df.to_json(orient='records')
         items = json.loads(loadJson)
-        print(items)
+        #print(items)
         tablename = city + "_transactions_from_xiaoqu"
         coll = mongo.lianjia[tablename]
         coll.insert(items)
@@ -406,16 +407,16 @@ def test_get_community_ID(city):
     xiaoqu_list = get_xiaoqu_of_city(city)
 
     # In[ ]:
+    if(isWrite):
+        with open("{}_list.txt".format(city), mode="w") as f:
+            for xiaoqu in xiaoqu_list:
+                f.write(xiaoqu + "\n")
+        print("list write finished.")
 
-    with open("{}_list.txt".format(city), mode="w") as f:
-        for xiaoqu in xiaoqu_list:
-            f.write(xiaoqu + "\n")
-    print("list write finished.")
+        # In[14]:
 
-    # In[14]:
-
-    with open("{}_list.txt".format(city), mode="r") as f:
-        xiaoqu_list = [line[:-1] for line in f.readlines()]
+        with open("{}_list.txt".format(city), mode="r") as f:
+            xiaoqu_list = [line[:-1] for line in f.readlines()]
 
 def get_num_from_xiaoqu(city):
     client = MongoClient("127.0.0.1", 27017)
@@ -431,7 +432,8 @@ def test_get_write_community_Info(city):
     # # 爬取小区ID列表对应的小区信息
     xiaoqu_list = get_num_from_xiaoqu(city)
     df_xiaoqu_info = get_xiaoqu_info_from_xiaoqu_list(CITY, xiaoqu_list)
-    df_xiaoqu_info.to_csv("{}_info.csv".format(CITY), sep=",", encoding="utf-8")
+    if(isWrite):
+        df_xiaoqu_info.to_csv("{}_info.csv".format(CITY), sep=",", encoding="utf-8")
     print("infos write finished.")
 
 def test_success_record(city):
@@ -443,11 +445,12 @@ def test_success_record(city):
         start = int(i * len(xiaoqu_list) / PART)
         end = int((i + 1) * len(xiaoqu_list) / PART)
         df_transactions = get_transactions_from_xiaoqu_list(CITY, xiaoqu_list[start:end])
-        writer = pd.ExcelWriter("{}_transactions_{}.xlsx".format(CITY, i + 1))
-        df_transactions.to_excel(writer, "Data")
-        writer.save()
-        #     df_transactions.to_csv("{}_transaction_{}.csv".format(CITY, i+1), sep=",", encoding="utf-8")
-        print("\nfile {} written.".format(i + 1))
+        if(isWrite):
+            writer = pd.ExcelWriter("{}_transactions_{}.xlsx".format(CITY, i + 1))
+            df_transactions.to_excel(writer, "Data")
+            writer.save()
+            #     df_transactions.to_csv("{}_transaction_{}.csv".format(CITY, i+1), sep=",", encoding="utf-8")
+            print("\nfile {} written.".format(i + 1))
 
 
 if __name__ == '__main__':
@@ -456,7 +459,7 @@ if __name__ == '__main__':
     # 测试部分函数的运行结果
 
     city_dict = {"成都": "cd", "天津": "tj", "北京": "bj", "上海": "sh", "广州": "gz", "深圳": "sz", "南京": "nj", "合肥": "hf",
-                 "杭州": "hz", }
+                 "杭州": "hz", "廊坊":"lf", "厦门":"xm" }
     CITY = city_dict["天津"]
 
     # In[15]:
@@ -466,19 +469,18 @@ if __name__ == '__main__':
 
     # In[15]:
 
-    #test_success_record(city=CITY)
-    test_get_write_community_Info(city=CITY)
-    #get_num(city=CITY)
-    #test_get_community_ID(city=CITY)
-    #get_xiaoqu_transactions(city=CITY, xiaoqu_id=1111027375590)
+    test_success_record(city=CITY)#3
+    #test_get_write_community_Info(city=CITY)#2
 
-# mongoexport -d lianjia_chengjiao -c tj_xiaoqu_name -f 小区ID,小区名称,户型,建筑面积,
-    # 成交价,挂牌价,单价,成交周期,成交日期,朝向,装修,电梯,楼层,建筑类型
-    # --csv -o E:\MongoDB\Server\3.4\bin\天津成交信息.csv
-#
-# mongoexport -d lianjia_xiaoqu -c tj_xiaoqu_info -f
-    # ID,URL,小区名称,城市,区域,片区,参考均价,建筑年代,总栋数,总户数,开发商,物业费,物业公司,建筑类型,地址
-    #  --csv -o E:\MongoDB\Server\3.4\bin\test\天津小区信息.csv
+    #test_get_community_ID(city=CITY)#1
+    #get_num_from_xiaoqu(city=CITY)
+    ######get_xiaoqu_transactions(city=CITY, xiaoqu_id=1111027375590)
+
+
+# mongoexport -d lianjia -c tj_chengjiao -f 小区ID,小区名称,户型,建筑面积,成交价,挂牌价,单价,成交周期,成交日期,朝向,装修,电梯,楼层,建筑类型 --csv -o E:\MongoDB\Server\3.4\bin\天津成交信息.csv
+
+
+# mongoexport -d lianjia_xiaoqu -c tj_xiaoqu_info -f ID,URL,小区名称,城市,区域,片区,参考均价,建筑年代,总栋数,总户数,开发商,物业费,物业公司,建筑类型,地址 --csv -o E:\MongoDB\Server\3.4\bin\test\天津小区信息.csv
 
 # mongoexport -d lianjia_data -c records -f 小区ID,小区名称,户型,建筑面积,成交价
 # ,挂牌价,单价,成交周期,成交日期,朝向,装修,电梯,楼层,建筑类型,区域,片区,季度,成交月份
