@@ -66,8 +66,18 @@ def get_bs_obj_from_url(http_url):
         try:
             if PRINT:
                 print("Getting {}".format(http_url))
-            req = urllib.request.Request(http_url, headers=hds[random.randint(0, len(hds) - 1)])
-            html = urllib.request.urlopen(req)
+            request = urllib.request
+            # 这里是从西刺获取的代理 IP
+            proxy = {'http': '125.110.67.117:8998'}
+
+            # 创建 ProxyHandler 对象
+            proxy_support = request.ProxyHandler(proxy)
+
+            req = request.Request(http_url, headers=hds[random.randint(0, len(hds) - 1)])
+
+
+
+            html = request.urlopen(req)
             bs_obj = BeautifulSoup(html.read(), "lxml")
             done = True
         except Exception as e:
@@ -137,6 +147,7 @@ def get_xiaoqu_from_district(city, district):
         #print(items)
         tablename = city+'_xiaoqu_num'
         coll = mongo.lianjia[tablename]
+        coll.ensure_index('URL', unique=True)
         coll.insert(items)
     return xiaoqu_list
 
@@ -222,6 +233,7 @@ def get_xiaoqu_info(city, xiaoqu_id):
             items = json.loads(loadJson)
             tablename = city + "_xiaoqu_info"
             coll = mongo.lianjia[tablename]
+            coll.ensure_index('URL', unique=True)
             coll.insert(items)
         except Exception as e:
             print(e)
@@ -331,9 +343,10 @@ def get_xiaoqu_transactions_in_page(city, xiaoqu_id, page_no):
                 mongo = MongoClient("127.0.0.1", 27017)
                 loadJson = df.to_json(orient='records')
                 items = json.loads(loadJson)
-                #print(items)
+                print(items)
                 tablename = city + '_chengjiao'
                 coll = mongo.lianjia[tablename]
+                coll.ensure_index('URL', unique=True)
                 coll.insert(items)
 
         except Exception as e:
@@ -347,6 +360,7 @@ def get_xiaoqu_transactions_in_page(city, xiaoqu_id, page_no):
     item = json.loads(loadJson)
     tablename = city + "_xiaoqu_finished_num"
     coll = mongo.lianjia[tablename]
+    coll.ensure_index('num', unique=True)
     coll.insert(item)
 
     return df
@@ -360,8 +374,9 @@ def get_xiaoqu_transactions(city, xiaoqu_id):
     for i in range(3):
         try:
             http_url = "http://{}.lianjia.com/chengjiao/c{}/".format(city, xiaoqu_id)
-            #print(http_url)
+            print(http_url)
             bs_obj = get_bs_obj_from_url(http_url)
+            print(bs_obj)
             total_transaction_num = int(bs_obj.find("div", {"class": "total fl"}).find("span").get_text())
             if total_transaction_num == 0:
                 return df_xiaoqu_transctions
@@ -418,6 +433,7 @@ def get_transactions_from_xiaoqu_list(city, xiaoqu_list):
         #print(items)
         tablename = city + "_transactions_from_xiaoqu"
         coll = mongo.lianjia[tablename]
+        coll.ensure_index('URL', unique=True)
         coll.insert(items)
     return df
 
@@ -444,11 +460,11 @@ def get_num_from_xiaoqu(city):
     client = MongoClient("127.0.0.1", 27017)
     coll = client['lianjia']
     cursor = coll[city+'_xiaoqu_unfinished_num'].find()
-    print(cursor.count())
+    #print(cursor.count())
     if cursor.count() == 0:
         print("################### NO Unfinished ########################")
         cursor = coll[city + '_xiaoqu_num'].find()
-        print(cursor.count())
+        #print(cursor.count())
     list = []
     for item in cursor:
         list.append(item['num'])
@@ -458,7 +474,7 @@ def get_num_from_xiaoqu(city):
 def test_get_write_community_Info(city):
     # # 爬取小区ID列表对应的小区信息
     xiaoqu_list = get_num_from_xiaoqu(city)
-    print(xiaoqu_list)
+    #print(xiaoqu_list)
     df_xiaoqu_info = get_xiaoqu_info_from_xiaoqu_list(CITY, xiaoqu_list)
     if(isWrite):
         df_xiaoqu_info.to_csv("{}_info.csv".format(CITY), sep=",", encoding="utf-8")
@@ -466,7 +482,11 @@ def test_get_write_community_Info(city):
 
 def test_success_record(city):
     mongo_unfinished(city)
+    print ("[Finished]mongo_unfinished")
     xiaoqu_list = get_num_from_xiaoqu(city)
+    print (xiaoqu_list)
+    print( len(xiaoqu_list))
+    print("[Finished]get Xiaoqu List")
     # # 爬取二手房交易记录
     # 分段爬取，避免失败重新爬，同时ExcelWriter有URL写入最多65530条的限制，根据具体情况设置PART的值
     PART = 5
@@ -482,7 +502,7 @@ def test_success_record(city):
             print("\nfile {} written.".format(i + 1))
 
 def mongo_unfinished(city):
-    print (city)
+    #print (city)
     client = MongoClient("127.0.0.1", 27017)
     coll = client['lianjia']
     collUnFin = coll[city + '_xiaoqu_unfinished_num']
@@ -497,17 +517,20 @@ def mongo_unfinished(city):
             num = item[u'num']
             #print(num)
             if coll[city + '_xiaoqu_finished_num'].find({'num':num}).count() > 0:
+                FinCount = FinCount + 1
+            else:
                 unFinCount = unFinCount + 1
                 loadJson = {
                     'num': num
                 }
                 loadJson = json.dumps(loadJson)
                 item = json.loads(loadJson)
+                coll.ensure_index('num', unique=True)
                 collUnFin.insert(item)
-            else:
-                FinCount = FinCount + 1
+
         print(unFinCount,FinCount)
         print(unFinCount + FinCount)
+
 
 if __name__ == '__main__':
 
@@ -532,7 +555,7 @@ if __name__ == '__main__':
 
     #test_get_write_community_Info(city=CITY)#2
 
-    #test_get_community_ID(city=CITY)#1
+   # test_get_community_ID(city=CITY)#1
     #get_num_from_xiaoqu(city=CITY)
     ######get_xiaoqu_transactions(city=CITY, xiaoqu_id=1111027375590)
 

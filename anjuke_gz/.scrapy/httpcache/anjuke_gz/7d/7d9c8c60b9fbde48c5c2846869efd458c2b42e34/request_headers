@@ -1,0 +1,5 @@
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en
+User-Agent: Scrapy/1.4.0 (+http://scrapy.org)
+Accept-Encoding: gzip,deflate
+Cookie: ctid=17; aQQ_ajkguid=B605CE37-1C5A-5EA2-1714-SX0526154715; sessid=4B1AFF7E-94C7-5338-ABA1-SX0526154715; tuangou_list_ids=1%3A1

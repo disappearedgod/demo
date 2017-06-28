@@ -1,0 +1,5 @@
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en
+User-Agent: Scrapy/1.4.0 (+http://scrapy.org)
+Accept-Encoding: gzip,deflate
+Cookie: ctid=17; aQQ_ajkguid=DA4D5DB5-4D8A-FAAF-4E57-SX0526160151; sessid=C7B12A45-AB30-88EA-4C23-SX0526160151

@@ -1,0 +1,13 @@
+Server: nginx
+Date: Fri, 26 May 2017 08:32:00 GMT
+Content-Type: text/html; charset=UTF-8
+Ajk: tjtx-92-79.58os.org
+Ajk_Ext: v=2017_22_24, SYS=2017_18_01, SYSTEMEXT=2017_22_03, type=php7 , repo=user-site
+Jockjs: ujs=2017_09_01, pjs=2014_47_03
+X-Logtrace-Id: G-C0EC1DF1DC0FAF997480215E8ADBE55C
+Set-Cookie: sessid=0ACB034B-6534-201C-47E4-0CF87015AE2E; path=/; domain=.anjuke.com
+Set-Cookie: aQQ_ajkguid=12A948DE-5A7B-29A8-4423-9D4D62E83C86; expires=Sat, 26-May-2018 08:31:59 GMT; Max-Age=31536000; path=/; domain=.anjuke.com
+Set-Cookie: lps=http%3A%2F%2Ftianjin.anjuke.com%2Fsale%2Fp1%2F%7C; expires=Fri, 26-May-2017 16:00:00 GMT; Max-Age=26881; path=/; domain=.anjuke.com
+Set-Cookie: ctid=17; expires=Sun, 25-Jun-2017 08:31:59 GMT; Max-Age=2592000; path=/; domain=.anjuke.com
+Set-Cookie: sessid=95BAD637-B132-963D-5263-B9F4E131C931; path=/; domain=.anjuke.com
+Location: http://tianjin.anjuke.com/404/?from=antispam

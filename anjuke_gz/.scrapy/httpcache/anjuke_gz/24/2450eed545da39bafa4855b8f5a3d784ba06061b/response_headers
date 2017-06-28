@@ -1,0 +1,12 @@
+Server: nginx
+Date: Fri, 26 May 2017 12:32:58 GMT
+Content-Type: text/html; charset=utf-8
+Vary: Accept-Encoding
+Ajk: m=tjtx-125-102, v=20170526_07
+Set-Cookie: ctid=14; expires=Sun, 25-Jun-2017 12:32:58 GMT; Max-Age=2592000; path=/; domain=anjuke.com
+Set-Cookie: tuangou_list_ids=4%3A6; path=/; domain=anjuke.com
+X-Logtrace-Id: G-4FCBDD9DB08E30D92D0F68CDED763EB0
+Cache-Control: public, s-maxage=86400, max-age=0, must-revalidate
+Last-Modified: Fri, 26 May 2017 12:32:58 GMT
+Expires: Thu, 01 Jan 1970 00:00:00 GMT
+Content-Encoding: gzip

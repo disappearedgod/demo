@@ -1,0 +1,1 @@
+{"area": "38.78", "url": "https://tj.lianjia.com/chengjiao/101101250438.html", "average_price": "47061", "floor": "\u4e2d\u697c\u5c42(\u51717\u5c42)", "build_time": "2017.03.21", "location": "\u9e3f\u8bb0\u91cc", "room_shape": "\u897f", "price": "182.5"}

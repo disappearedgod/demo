@@ -8,27 +8,26 @@ import tushare.stock.trading as fd
 import tushare as ts
 from pymongo import MongoClient
 import json
+import datetime
 
 class Test(unittest.TestCase):
     def set_data(self):
-        self.code = '600848'
+        self.code = '000001'
         self.start = '2015-01-03'
-        self.end = '2015-04-07'
+        self.end = '2015-01-07'
         self.host = "127.0.0.1"
         self.port = 27017
+        self.now = datetime.datetime.today()
 
-    def core_function(self, func, isCode,isByDate, codeType):
+    def core_function(self, func, isByAllCode, isByDate, codeType):
         self.set_data()
         print(func)
         # mongo = MongoClient(self.host, self.port)
         mongo = MongoClient(self.host, self.port)
-        if(isCode):
+        if(isByAllCode):
             self.search_by_code_date(isByDate, mongo, func, codeType)
         else:
-            if (func == "today_all"):
-                df = ts.get_today_all()
-            else:
-                self.getData(mongo,func)
+            self.getDataRelateLessWithCode(mongo,func)
 
     def search_by_code_date(self, isByDate, mongo, func, code_collection):
         print ("getByCode")
@@ -47,11 +46,9 @@ class Test(unittest.TestCase):
                 self.getOnlyByCode(mongo, func, code)
 
     def getOnlyByCode(self, mongo, func, code):
-        if (func == "hist_data"):
-            df = ts.get_hist_data(code, self.start, self.end)
         # elif (func == "tick_data"):
         #     df = ts.get_tick_data(code, self.start, self.end)
-        elif (func == "realtime_quotes"):
+        if (func == "realtime_quotes"):
             df = ts.get_realtime_quotes(code)
             # # 上证指数
             # ts.get_realtime_quotes('sh')
@@ -68,6 +65,7 @@ class Test(unittest.TestCase):
         else:
             df = {}
         # print(func)
+        # print( df )
         # print(type(df))
         tmpJson = json.loads(df.to_json(orient='records'))
         coll = mongo.trading[func]
@@ -75,8 +73,7 @@ class Test(unittest.TestCase):
             tmpJson[i][u'code'] = code
             coll.insert(tmpJson[i])
 
-
-    def getFromTimeRange(self, mongo, func,code):
+    def getFromTimeRange(self, mongo, func, code):
         print("queryFromTime")
         import datetime
         begin_date = self.start
@@ -90,23 +87,32 @@ class Test(unittest.TestCase):
 
     def getByDate(self, mongo, func, code, date):
         isNeedDate = False
-        if (func == "sina_dd"):
-            df = ts.get_sina_dd(code, date=str(date))
-        elif (func == "tick_data"):
+
+        if (func == "tick_data"):
             df = ts.get_tick_data(code, date=date)
         elif (func == "h_data"):
             df = ts.get_h_data(code, self.start, self.end)
+        elif (func == "hist_data"):
+            df = ts.get_hist_data(code, self.start, self.end)
+        elif (func == "sina_dd"):
+            df = ts.get_sina_dd(code, date=date)
+            # df = ts.get_sina_dd('600848', date='2015-12-24')
+
         else:
             df = {}
-        print(func)
+        # print(func)
         # print(type(df))
+        # print(func)
+
+
         tmpJson = json.loads(df.to_json(orient='records'))
         for i in range(len(tmpJson)):
             tmpJson[i][u'code'] = code
+            tmpJson[i][u'date'] = date
         coll = mongo.trading[func]
         coll.insert(tmpJson)
 
-    def getData(self,mongo,func):
+    def getDataRelateLessWithCode(self,mongo,func):
         if(func =="stock_basics"):
             df = ts.get_stock_basics()
             date = df.ix['600848']['timeToMarket']  # 上市日期YYYYMMDD
@@ -117,7 +123,14 @@ class Test(unittest.TestCase):
             #
             # ts.get_h_data('399106', index=True)  # 深圳综合指数
             print(date)
-
+        elif (func == "today_all"):
+                df = ts.get_today_all()
+                tmpJson = json.loads(df.to_json(orient='records'))
+                coll = mongo.trading[func]
+                for i in range(len(tmpJson)):
+                    tmpJson[i][u'now'] = str(self.now)
+                    coll.insert(tmpJson[i])
+                return;
         elif (func == "index"):
             df = ts.get_index()
         else:
@@ -127,10 +140,6 @@ class Test(unittest.TestCase):
         items = json.loads(insert_string)
         coll = mongo.trading[func]
         coll.insert(items)
-
-
-
-
 
 
 
@@ -178,7 +187,7 @@ class Test(unittest.TestCase):
         # turnover: 换手率[注：指数无此项]
         #########################################
         isCode = True
-        isByDate = False
+        isByDate = True
         code_collection = "HS300"
         self.core_function("hist_data", isCode, isByDate, code_collection)
 
