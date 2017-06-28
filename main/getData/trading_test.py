@@ -14,7 +14,7 @@ class Test(unittest.TestCase):
     def set_data(self):
         self.code = '000001'
         self.start = '2015-01-03'
-        self.end = '2015-01-07'
+        self.end = '2017-01-04'
         self.host = "127.0.0.1"
         self.port = 27017
         self.now = datetime.datetime.today()
@@ -37,9 +37,13 @@ class Test(unittest.TestCase):
             cursor = mongo.stockcodes.IT.find()
         else:
             cursor = {}
+        print("_______________________")
+        print(cursor)
         for item in cursor:
+            # print("_______________________")
+            # print(item)
             code = item['stockcode']
-            # print (code)
+            # print ("search_by_code_date", code)
             if(isByDate):
                 self.getFromTimeRange(mongo, func,code)
             else:
@@ -74,7 +78,7 @@ class Test(unittest.TestCase):
             coll.insert(tmpJson[i])
 
     def getFromTimeRange(self, mongo, func, code):
-        print("queryFromTime")
+        print("queryFromTime",self.start,self.end,"func:",func,"code:",code)
         import datetime
         begin_date = self.start
         end_date = self.end
@@ -82,6 +86,7 @@ class Test(unittest.TestCase):
         end = datetime.datetime.strptime(end_date, "%Y-%m-%d")
         while begin <= end:
             tmpDate = begin.strftime("%Y-%m-%d")
+            print("code:",code,"tmpDate:",tmpDate)
             self.getByDate(mongo, func,code,tmpDate)
             begin += datetime.timedelta(days=1)
 
@@ -91,24 +96,22 @@ class Test(unittest.TestCase):
         if (func == "tick_data"):
             df = ts.get_tick_data(code, date=date)
         elif (func == "h_data"):
-            df = ts.get_h_data(code, self.start, self.end)
+            df = ts.get_h_data(code, start=date, end=date)
         elif (func == "hist_data"):
-            df = ts.get_hist_data(code, self.start, self.end)
+            print(date)
+            print(type(date))
+            df = ts.get_hist_data(code, date=date)
         elif (func == "sina_dd"):
             df = ts.get_sina_dd(code, date=date)
             # df = ts.get_sina_dd('600848', date='2015-12-24')
 
         else:
             df = {}
-        # print(func)
-        # print(type(df))
-        # print(func)
-
-
         tmpJson = json.loads(df.to_json(orient='records'))
         for i in range(len(tmpJson)):
             tmpJson[i][u'code'] = code
             tmpJson[i][u'date'] = date
+            print(tmpJson[i])
         coll = mongo.trading[func]
         coll.insert(tmpJson)
 
@@ -380,61 +383,61 @@ class Test(unittest.TestCase):
         code_collection = "HS300"
         self.core_function("h_data", isCode, isByDate, code_collection)
 
-    def test_get_index(self):
-        # self.set_data()
-        # print(fd.get_h_data(self.code, self.start, self.end))
-        #########################################
-        # 大盘指数行情列表
-        # 获取大盘指数实时行情列表，以表格的形式展示大盘指数实时行情。
-        #
-        # 调用方法：
-        # 返回值说明：
-        # code: 指数代码
-        # name: 指数名称
-        # change: 涨跌幅
-        # open: 开盘点位
-        # preclose: 昨日收盘点位
-        # close: 收盘点位
-        # high: 最高点位
-        # low: 最低点位
-        # volume: 成交量(手)
-        # amount: 成交金额（亿元）
-        #########################################
-        isCode = False
-        isByDate = False
-        code_collection = "HS300"
-        self.core_function("index", isCode,isByDate, code_collection)
-
-    def test_get_sina_dd(self):
-        isCode = True
-        isByDate = True
-        code_collection = "HS300"
-        self.core_function("sina_dd", isCode,isByDate, code_collection)
-
-    def test_get_today_ticks(self):
-        # self.set_data()
-        # print(fd.get_today_ticks(self.code))
-        #########################################
-        # 当日历史分笔¶
-        # 获取当前交易日（交易进行中使用）已经产生的分笔明细数据。
-        # 参数说明：
-        # code：股票代码，即6位数字代码
-        # retry_count: int, 默认3, 如遇网络等问题重复执行的次数
-        # pause: int, 默认        0, 重复请求数据过程中暂停的秒数，防止请求间隔时间太短出现的问题
-        # 返回值说明：
-        # time：时间
-        # price：当前价格
-        # pchange: 涨跌幅
-        # change：价格变动
-        # volume：成交手
-        # amount：成交金额(元)
-        # type：买卖类型【买盘、卖盘、中性盘】
-        #########################################
-        isCode = True
-        isByDate = False
-        code_collection = "HS300"
-        self.core_function("today_ticks", isCode, isByDate, code_collection)
-
+    # def test_get_index(self):
+    #     # self.set_data()
+    #     # print(fd.get_h_data(self.code, self.start, self.end))
+    #     #########################################
+    #     # 大盘指数行情列表
+    #     # 获取大盘指数实时行情列表，以表格的形式展示大盘指数实时行情。
+    #     #
+    #     # 调用方法：
+    #     # 返回值说明：
+    #     # code: 指数代码
+    #     # name: 指数名称
+    #     # change: 涨跌幅
+    #     # open: 开盘点位
+    #     # preclose: 昨日收盘点位
+    #     # close: 收盘点位
+    #     # high: 最高点位
+    #     # low: 最低点位
+    #     # volume: 成交量(手)
+    #     # amount: 成交金额（亿元）
+    #     #########################################
+    #     isCode = False
+    #     isByDate = False
+    #     code_collection = "HS300"
+    #     self.core_function("index", isCode,isByDate, code_collection)
+    #
+    # def test_get_sina_dd(self):
+    #     isCode = True
+    #     isByDate = True
+    #     code_collection = "HS300"
+    #     self.core_function("sina_dd", isCode,isByDate, code_collection)
+    #
+    # def test_get_today_ticks(self):
+    #     # self.set_data()
+    #     # print(fd.get_today_ticks(self.code))
+    #     #########################################
+    #     # 当日历史分笔¶
+    #     # 获取当前交易日（交易进行中使用）已经产生的分笔明细数据。
+    #     # 参数说明：
+    #     # code：股票代码，即6位数字代码
+    #     # retry_count: int, 默认3, 如遇网络等问题重复执行的次数
+    #     # pause: int, 默认        0, 重复请求数据过程中暂停的秒数，防止请求间隔时间太短出现的问题
+    #     # 返回值说明：
+    #     # time：时间
+    #     # price：当前价格
+    #     # pchange: 涨跌幅
+    #     # change：价格变动
+    #     # volume：成交手
+    #     # amount：成交金额(元)
+    #     # type：买卖类型【买盘、卖盘、中性盘】
+    #     #########################################
+    #     isCode = True
+    #     isByDate = False
+    #     code_collection = "HS300"
+    #     self.core_function("today_ticks", isCode, isByDate, code_collection)
+    #
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
